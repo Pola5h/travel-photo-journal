@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Resources\UserResource;
 use App\Services\AuthService;
@@ -20,5 +21,26 @@ class AuthController extends Controller
             'Registered. Please check your email to verify your account.',
             201,
         );
+    }
+
+    public function login(LoginRequest $request, AuthService $auth): JsonResponse
+    {
+        $result = $auth->attemptLogin($request->validated());
+
+        return ApiResponse::success($result, 'Logged in.');
+    }
+
+    public function refresh(AuthService $auth): JsonResponse
+    {
+        $result = $auth->refresh();
+
+        return ApiResponse::success($result, 'Token refreshed.');
+    }
+
+    public function logout(AuthService $auth): JsonResponse
+    {
+        $auth->logout();
+
+        return ApiResponse::success(null, 'Logged out.');
     }
 }

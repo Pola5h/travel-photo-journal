@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Tymon\JWTAuth\Exceptions\JWTException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -48,6 +49,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 $e instanceof TwoFactorRequiredException => ApiResponse::error($e->getMessage(), [], 401, ['two_factor_required' => true]),
                 $e instanceof ValidationException => ApiResponse::error($e->getMessage(), $e->errors(), 422),
                 $e instanceof AuthenticationException => ApiResponse::error('Unauthenticated.', [], 401),
+                $e instanceof JWTException => ApiResponse::error('Token is invalid or expired.', [], 401),
                 $e instanceof ThrottleRequestsException => ApiResponse::error('Too many attempts. Please try again later.', [], 429),
                 $e instanceof NotFoundHttpException => ApiResponse::error('Resource not found.', [], 404),
                 $e instanceof HttpExceptionInterface => ApiResponse::error($e->getMessage() ?: 'Request failed.', [], $e->getStatusCode()),

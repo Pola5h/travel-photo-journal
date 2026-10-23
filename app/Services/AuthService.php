@@ -2,8 +2,12 @@
 
 namespace App\Services;
 
+use App\Exceptions\EmailNotVerifiedException;
+use App\Http\Resources\UserResource;
 use App\Models\User;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class AuthService
 {
@@ -19,5 +23,62 @@ class AuthService
         $this->verification->issue($user);
 
         return $user;
+    }
+
+    /**
+     * @param  array<string, mixed>  $credentials
+     * @return array<string, mixed>
+     */
+    public function attemptLogin(array $credentials): array
+    {
+        $user = User::query()->where('email', strtolower($credentials['email']))->first();
+
+        if ($user === null || ! Hash::check($credentials['password'], $user->password)) {
+            throw new AuthenticationException('Invalid email or password.');
+        }
+
+        if ($user->email_verified_at === null) {
+            throw new EmailNotVerifiedException;
+        }
+
+        return $this->tokenResponse($user);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function refresh(): array
+    {
+        $guard = auth('api');
+
+        $token = $guard->refresh();
+
+        $user = $guard->setToken($token)->user();
+
+        $guard->unsetToken();
+
+        if ($user === null) {
+            throw new AuthenticationException('Token is invalid or expired.');
+        }
+
+        return $this->tokenResponse($user, $token);
+    }
+
+    public function logout(): void
+    {
+        auth('api')->logout(true);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function tokenResponse(User $user, ?string $token = null): array
+    {
+        return [
+            'access_token' => $token ?? auth('api')->login($user),
+            'token_type' => 'bearer',
+            'expires_in' => (int) config('jwt.ttl') * 60,
+            'user' => new UserResource($user),
+        ];
     }
 }
