@@ -2,6 +2,7 @@
 
 use App\Exceptions\EmailNotVerifiedException;
 use App\Exceptions\InvalidVerificationTokenException;
+use App\Exceptions\TwoFactorAlreadyEnabledException;
 use App\Exceptions\TwoFactorRequiredException;
 use App\Http\Middleware\EnsureEmailVerified;
 use App\Http\Middleware\ForceJsonResponse;
@@ -47,6 +48,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 $e instanceof InvalidVerificationTokenException => ApiResponse::error($e->getMessage(), ['token' => [$e->getMessage()]], 422),
                 $e instanceof EmailNotVerifiedException => ApiResponse::error($e->getMessage(), [], 403),
                 $e instanceof TwoFactorRequiredException => ApiResponse::error($e->getMessage(), [], 401, ['two_factor_required' => true]),
+                $e instanceof TwoFactorAlreadyEnabledException => ApiResponse::error($e->getMessage(), [], 409),
                 $e instanceof ValidationException => ApiResponse::error($e->getMessage(), $e->errors(), 422),
                 $e instanceof AuthenticationException => ApiResponse::error('Unauthenticated.', [], 401),
                 $e instanceof JWTException => ApiResponse::error('Token is invalid or expired.', [], 401),

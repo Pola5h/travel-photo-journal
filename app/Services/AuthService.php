@@ -3,15 +3,20 @@
 namespace App\Services;
 
 use App\Exceptions\EmailNotVerifiedException;
+use App\Exceptions\TwoFactorRequiredException;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class AuthService
 {
-    public function __construct(private readonly EmailVerificationService $verification) {}
+    public function __construct(
+        private readonly EmailVerificationService $verification,
+        private readonly TwoFactorService $twoFactor,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $data
@@ -39,6 +44,20 @@ class AuthService
 
         if ($user->email_verified_at === null) {
             throw new EmailNotVerifiedException;
+        }
+
+        if ($user->two_factor_confirmed_at !== null) {
+            $otp = $credentials['otp'] ?? null;
+
+            if (! is_string($otp) || $otp === '') {
+                throw new TwoFactorRequiredException;
+            }
+
+            if (! $this->twoFactor->verifyCode($user, $otp)) {
+                throw ValidationException::withMessages([
+                    'otp' => ['The one-time code is invalid.'],
+                ]);
+            }
         }
 
         return $this->tokenResponse($user);

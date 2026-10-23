@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\Api\PhotoController;
+use App\Http\Controllers\Api\TwoFactorController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
@@ -15,6 +16,9 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::middleware(['auth:api', 'verified.email'])->group(function () {
+    Route::post('auth/2fa/setup', [TwoFactorController::class, 'setup']);
+    Route::post('auth/2fa/verify', [TwoFactorController::class, 'verify'])->middleware('throttle:5,1');
+
     Route::get('photos', [PhotoController::class, 'index']);
     Route::post('photos', [PhotoController::class, 'store']);
     Route::get('photos/{id}', [PhotoController::class, 'show'])->whereNumber('id');
