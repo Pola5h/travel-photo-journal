@@ -1,58 +1,240 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Travel Photo Journal
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A small Laravel API + Blade UI where a registered user can upload travel photos, keep their
+location and description, and get an AI-generated summary for each photo.
 
-## About Laravel
+- **Live URL:** _not deployed yet — add the subdomain here after deployment_
+- **Demo account:** set `DEMO_USER_EMAIL` / `DEMO_USER_PASSWORD` in `.env` and run
+  `php artisan migrate --seed`. Locally the example values are `demo@example.com` / `password123`.
+- **Repository:** conventional commits, one commit per implementation step.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Stack
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+| Piece | Why |
+|---|---|
+| Laravel 13 (PHP 8.4) | batteries-included HTTP, validation, ORM, mail, testing |
+| MySQL | the assessment database; simple relational ownership |
+| `tymon/jwt-auth` | stateless API tokens with a refresh flow and blacklist |
+| `pragmarx/google2fa` + `bacon/bacon-qr-code` | standard TOTP 2FA and a self-contained QR SVG |
+| Pest | short, readable feature tests on top of PHPUnit |
+| Blade + Tailwind CDN + Alpine.js | a small UI without a build pipeline |
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+There is no queue, no cron, no admin panel, and no build step.
 
-## Learning Laravel
+## Architecture
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```
+Browser ─ GET /photos ──► routes/web.php ─► PageController ─► Blade (empty shell)
+        └ fetch /api/* ─► routes/api.php ─► Api Controller ─► Service ─► Model ─► MySQL
+                              FormRequest (validation) · Policy (ownership) · Resource (JSON shape)
+                              Services: Auth, EmailVerification, TwoFactor, Photo, ImageStorage, Summary
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+```
+app/Http/Controllers/Api/   Auth, EmailVerification, TwoFactor, Photo
+app/Http/Controllers/Web/   PageController (views only)
+app/Http/Requests/          Auth, TwoFactor, Photo validation
+app/Http/Resources/         UserResource, PhotoResource
+app/Http/Middleware/        EnsureEmailVerified, ForceJsonResponse, SecurityHeaders
+app/Models/                 User, Photo, EmailVerificationToken
+app/Policies/               PhotoPolicy
+app/Services/               AuthService, EmailVerificationService, TwoFactorService,
+                            PhotoService, ImageStorageService, SummaryService
+app/Notifications/          VerifyEmailNotification
+app/Support/                ApiResponse
+app/Exceptions/             two-factor, unverified-email and bad-token exceptions
+resources/views/            layouts, partials, auth, photos, settings
+public/assets/js/           lib (api, auth store, guard) and page scripts
+public/uploads/photos/      uploaded images (PHP execution blocked by .htaccess)
+```
 
-## Contributing
+Dependency direction is route → controller → service → model. Controllers only validate, call one
+service and shape the response. Services never touch `request()` / `response()`.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Local setup
 
-## Code of Conduct
+Requirements: PHP 8.4+, Composer, MySQL, and the usual Laravel PHP extensions
+(`pdo_mysql`, `fileinfo`, `gd`, `mbstring`, `openssl`).
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```sh
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan jwt:secret
 
-## Security Vulnerabilities
+# fill DB_* and (optionally) OPENROUTER_* / DEMO_USER_* in .env
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+php artisan migrate --seed
+php artisan serve
+```
 
-## License
+Open `http://localhost:8000`. `MAIL_MAILER=log` writes the verification email (including the link)
+to `storage/logs/laravel.log`, which is convenient locally. Use SMTP in production.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+The `public/uploads/photos` directory must be writable by the web server. The included
+`.htaccess` denies PHP execution in that directory.
+
+## Environment variables
+
+| Variable | Purpose |
+|---|---|
+| `APP_URL` | public URL, also used for image URLs and verification links |
+| `DB_*` | MySQL connection |
+| `JWT_SECRET`, `JWT_TTL` (minutes), `JWT_REFRESH_TTL` (minutes) | token signing and lifetimes |
+| `JWT_BLACKLIST_ENABLED`, `JWT_BLACKLIST_GRACE_PERIOD` | token invalidation on refresh/logout |
+| `MAIL_*` | verification mail (log locally, Brevo/SMTP in production) |
+| `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` | AI summary provider and model |
+| `UPLOAD_MAX_KB` | image size limit (default 5120) |
+| `DEMO_USER_EMAIL`, `DEMO_USER_PASSWORD` | optional demo account seeded by `DemoUserSeeder` |
+
+## API
+
+Every response uses one envelope:
+
+```json
+{ "success": true, "message": "OK", "data": {} }
+{ "success": false, "message": "Validation failed.", "errors": { "field": ["..."] } }
+```
+
+| Method | Path | Middleware | Success | Errors |
+|---|---|---|---|---|
+| POST | `/api/auth/register` | `throttle:10,60` | 201 | 422 |
+| POST | `/api/auth/verify-email` | `throttle:10,1` | 200 | 422 |
+| POST | `/api/auth/resend-verification` | `throttle:3,1` | 200 | 422 |
+| POST | `/api/auth/login` | `throttle:login` (5/min per email+IP) | 200 token | 401, 403, 422 |
+| POST | `/api/auth/refresh` | `throttle:30,1` | 200 token | 401 |
+| POST | `/api/auth/logout` | `auth:api` | 200 | 401 |
+| POST | `/api/auth/2fa/setup` | `auth:api`, `verified.email` | 200 secret + `qr_svg` | 401, 403, 409 |
+| POST | `/api/auth/2fa/verify` | `auth:api`, `verified.email`, `throttle:5,1` | 200 | 422 |
+| GET | `/api/photos` | `auth:api`, `verified.email` | 200 paginated (10) | 401, 403 |
+| POST | `/api/photos` | same | 201 | 422 |
+| GET | `/api/photos/{id}` | same | 200 | 404 |
+| PUT | `/api/photos/{id}` | same | 200 | 404, 422 |
+| DELETE | `/api/photos/{id}` | same | 200 | 404 |
+
+Login returns:
+
+```json
+{
+  "success": true,
+  "message": "Logged in.",
+  "data": {
+    "access_token": "eyJ...",
+    "token_type": "bearer",
+    "expires_in": 900,
+    "user": { "id": 1, "name": "Demo User", "email": "demo@example.com", "two_factor_enabled": false }
+  }
+}
+```
+
+The photo list returns `data.items` plus `data.meta` (`current_page`, `per_page`, `total`,
+`last_page`). A photo looks like:
+
+```json
+{
+  "id": 3,
+  "name": "Sunset over the bay",
+  "location": "Goa, India",
+  "description": "A warm evening on the beach.",
+  "summary": "The author describes a warm evening by the sea. The sky and water set a calm mood.",
+  "image_url": "https://example.com/uploads/photos/8f12....jpg",
+  "image_original_name": "sunset.jpg",
+  "created_at": "2026-10-24T10:00:00+00:00",
+  "updated_at": "2026-10-24T10:00:00+00:00"
+}
+```
+
+If 2FA is active, login without `otp` returns 401 with `"two_factor_required": true`; a wrong
+code returns 422 with `errors.otp`; a correct code returns the token.
+
+## Design decisions
+
+- **Another user's photo is a 404, not a 403.** Every lookup goes through
+  `$user->photos()->findOrFail($id)`, so ids outside the authenticated user's scope simply do not
+  exist. `PhotoPolicy` is a second, explicit ownership check.
+- **Verification tokens are stored hashed.** A random 64-character token is emailed; only its
+  SHA-256 hash is stored. Tokens expire after 60 minutes, are deleted when reissued, are compared
+  with `hash_equals`, and are single-use.
+- **AI summary is synchronous and fail-safe.** The summary must be present in the POST response,
+  so no queue or `defer()` is used. The OpenRouter call has a 10-second timeout; every failure is
+  caught and the photo is still saved with `summary = null`. Only the error message is logged —
+  never the description. Descriptions are truncated to 2000 characters before sending and stored
+  summaries to 500. The system prompt tells the model to ignore instructions inside the text, and
+  the user text is sent as a separate user message. A changed description regenerates the summary.
+- **Sliding refresh with one token.** The access token lives 15 minutes; the refresh window is 14
+  days. `/api/auth/refresh` is intentionally not behind `auth:api`, so an expired access token can
+  still be exchanged inside the window; the old token is blacklisted. This is *not* a separate
+  refresh token; it is a single token with a sliding window. The 30-second blacklist grace period
+  avoids breaking concurrent requests. Logout invalidates forever.
+- **JWT is kept in `localStorage`.** This keeps the Blade UI simple, but any XSS would expose the
+  token. The next step would be an httpOnly cookie (with CSRF protection) or a short-lived token
+  plus a server-side session.
+- **Web and API are separate.** Web routes only return views; every page then talks to `/api`.
+  The API never renders HTML, and the Blade pages contain no database queries.
+- **2FA returns 401 for "code required" and 422 for "wrong code".** Missing credentials are an
+  authentication challenge; a submitted but incorrect code is a validation error on `otp`.
+- **Login is rate-limited per email and IP** (5/min) to slow credential stuffing without locking
+  out a whole network. Registration, verification, resend and 2FA verification have their own
+  limits.
+- **Uploads are renamed to UUIDs and PHP execution is blocked.** The original name is stored only
+  in the database. The uploads directory has `Options -Indexes` and a `FilesMatch` rule denying
+  `.php`, `.phtml`, `.phar`, and versioned PHP files (no `php_flag`, so PHP-FPM is unaffected).
+- **Secrets stay in casts and config.** Passwords are hashed by the `hashed` cast, the TOTP secret
+  uses the `encrypted` cast and is hidden from JSON, and no token, password or OTP is logged.
+
+## Deployment
+
+The app is designed for shared hosting (document root `public/`, PHP 8.4, separate MySQL database
+and user, SSH, no cron):
+
+```sh
+git clone <repo> && cd travel-photo-journal
+composer install --no-dev -o
+cp .env.example .env
+# APP_ENV=production, APP_DEBUG=false, APP_URL=https://<subdomain>, DB_*, MAIL_*, OPENROUTER_*
+php artisan key:generate
+php artisan jwt:secret
+php artisan migrate --force --seed
+php artisan config:cache
+php artisan route:cache
+```
+
+Make `storage`, `bootstrap/cache` and `public/uploads/photos` writable (755/775). Configure mail
+with Brevo SMTP (`smtp-relay.brevo.com`, port 587 with TLS, or 2525 when 587 is blocked). Confirm
+that a `.php` file placed in the uploads directory does not execute, then delete it. Keep
+`APP_DEBUG=false` and check the full flow online: register → email → verify → login → 2FA setup →
+logout → login with OTP → upload → summary → edit → delete.
+
+## Docker
+
+```sh
+cp .env.example .env
+# fill APP_KEY (or run `php artisan key:generate`), JWT_SECRET, DB credentials, OPENROUTER_*
+docker compose up -d --build
+docker compose exec app php artisan migrate --seed --force
+```
+
+The app is then available at `http://localhost:8080`; MySQL is a separate `mysql` service with a
+persistent volume.
+
+## Running tests
+
+```sh
+php artisan test
+```
+
+The suite covers registration and verification (valid, wrong, expired, reused, resend), login and
+token refresh/logout, photo CRUD and file cleanup, cross-user ownership (404), AI summary success,
+failure, timeout, regeneration and truncation, 2FA setup/verify/login, response envelopes and
+security headers. Tests use an in-memory SQLite database, `Http::fake()`, `Notification::fake()`
+and fake uploads; no external service is called.
+
+## With more time
+
+- Queue or `defer()` the AI summary with a `summary_status` column and polling/streaming in the UI.
+- Separate refresh tokens in an httpOnly cookie, rotate on use, and revoke a family on reuse.
+- 2FA recovery codes and a "trust this device" option.
+- Image resizing/thumbnails, EXIF stripping, and S3/Cloudinary storage.
+- Redis-backed rate limiting and shared cache for the token blacklist.
+- CI pipeline with Pint, static analysis, and the Pest suite on every push.
+- Better pagination UX and optimistic UI for deletes.
