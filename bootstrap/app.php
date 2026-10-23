@@ -6,6 +6,7 @@ use App\Exceptions\TwoFactorAlreadyEnabledException;
 use App\Exceptions\TwoFactorRequiredException;
 use App\Http\Middleware\EnsureEmailVerified;
 use App\Http\Middleware\ForceJsonResponse;
+use App\Http\Middleware\SecurityHeaders;
 use App\Support\ApiResponse;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -26,6 +27,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->append(SecurityHeaders::class);
+
         $middleware->api(prepend: [
             ForceJsonResponse::class,
         ]);
