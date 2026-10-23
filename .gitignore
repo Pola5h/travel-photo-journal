@@ -28,3 +28,8 @@ Thumbs.db
 /public/uploads/photos/*
 !/public/uploads/photos/.gitkeep
 !/public/uploads/photos/.htaccess
+.env.before_lerd
+/.lerd.yaml
+/.php-version
+/.node-version
+/AGENT_PLAN_EN.md
