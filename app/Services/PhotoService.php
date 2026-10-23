@@ -11,7 +11,10 @@ use Throwable;
 
 class PhotoService
 {
-    public function __construct(private readonly ImageStorageService $images) {}
+    public function __construct(
+        private readonly ImageStorageService $images,
+        private readonly SummaryService $summaries,
+    ) {}
 
     public function paginateForUser(User $user, int $perPage = 10): LengthAwarePaginator
     {
@@ -31,7 +34,7 @@ class PhotoService
         $stored = $this->images->store($image);
 
         try {
-            return DB::transaction(function () use ($user, $data, $stored): Photo {
+            $photo = DB::transaction(function () use ($user, $data, $stored): Photo {
                 return $user->photos()->create([
                     'name' => $data['name'],
                     'location' => $data['location'],
@@ -45,6 +48,14 @@ class PhotoService
 
             throw $e;
         }
+
+        $summary = $this->summaries->summarize($photo->description);
+
+        if ($summary !== null) {
+            $photo->forceFill(['summary' => $summary])->save();
+        }
+
+        return $photo->refresh();
     }
 
     /**
@@ -52,11 +63,19 @@ class PhotoService
      */
     public function update(Photo $photo, array $data): Photo
     {
-        return DB::transaction(function () use ($photo, $data): Photo {
-            $photo->fill($data)->save();
+        $descriptionChanged = $photo->description !== $data['description'];
 
-            return $photo->refresh();
+        DB::transaction(function () use ($photo, $data): void {
+            $photo->fill($data)->save();
         });
+
+        if ($descriptionChanged) {
+            $photo->forceFill([
+                'summary' => $this->summaries->summarize($photo->description),
+            ])->save();
+        }
+
+        return $photo->refresh();
     }
 
     public function delete(Photo $photo): void
