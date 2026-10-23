@@ -4,7 +4,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', config('app.name'))</title>
-    <style>[x-cloak] { display: none !important; }</style>
+    <style>
+        [x-cloak] { display: none !important; }
+        body { margin: 0; background: #f9fafb; color: #111827; }
+    </style>
+    @include('partials.scripts')
+    <script src="/assets/js/lib/guard.js"></script>
     @stack('head')
 </head>
 <body class="bg-gray-50 text-gray-900">
@@ -14,8 +19,6 @@
         @yield('content')
     </main>
 
-    @include('partials.scripts')
-    <script src="/assets/js/lib/guard.js"></script>
     @stack('scripts')
 </body>
 </html>
