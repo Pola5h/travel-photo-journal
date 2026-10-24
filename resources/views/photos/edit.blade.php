@@ -8,23 +8,32 @@
 
         <form class="space-y-4 rounded border bg-white p-6" @submit.prevent="submit">
             <div x-show="imageUrl" x-cloak>
-                <img :src="imageUrl" alt="Current photo" class="h-48 w-48 rounded object-cover">
+                <label class="mb-1 block text-sm font-medium text-gray-700">Current photo</label>
+                <div class="inline-block rounded-lg border border-gray-200 bg-gray-50 p-2 shadow-sm">
+                    <img :src="imageUrl" alt="Current photo" class="h-48 w-48 rounded object-cover">
+                </div>
             </div>
 
             <div>
-                <label class="mb-1 block text-sm font-medium" for="name">Name</label>
+                <label class="mb-1 block text-sm font-medium" for="name">
+                    Name <span class="text-red-500">*</span>
+                </label>
                 <input id="name" type="text" x-model="name" required maxlength="120"
                        class="w-full rounded border border-gray-300 px-3 py-2">
             </div>
 
             <div>
-                <label class="mb-1 block text-sm font-medium" for="location">Location</label>
+                <label class="mb-1 block text-sm font-medium" for="location">
+                    Location <span class="text-red-500">*</span>
+                </label>
                 <input id="location" type="text" x-model="location" required maxlength="160"
                        class="w-full rounded border border-gray-300 px-3 py-2">
             </div>
 
             <div>
-                <label class="mb-1 block text-sm font-medium" for="description">Description</label>
+                <label class="mb-1 block text-sm font-medium" for="description">
+                    Description <span class="text-red-500">*</span>
+                </label>
                 <textarea id="description" x-model="description" required rows="5"
                           class="w-full rounded border border-gray-300 px-3 py-2"></textarea>
             </div>
@@ -45,5 +54,5 @@
 @endsection
 
 @push('scripts')
-    <script src="/assets/js/pages/photos-form.js"></script>
+    <script src="/assets/js/pages/photos-form.js?v={{ time() }}"></script>
 @endpush

@@ -13,6 +13,8 @@ class SummaryService
 
     private const MAX_SUMMARY_LENGTH = 500;
 
+    private const TIME_OUT = 30;
+
     public function summarize(?string $description): ?string
     {
         if ($description === null || trim($description) === '') {
@@ -24,7 +26,7 @@ class SummaryService
         try {
             $response = Http::withToken((string) config('services.openrouter.key'))
                 ->acceptJson()
-                ->timeout(10)
+                ->timeout(self::TIME_OUT)
                 ->post('https://openrouter.ai/api/v1/chat/completions', [
                     'model' => config('services.openrouter.model'),
                     'messages' => [

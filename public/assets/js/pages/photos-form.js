@@ -8,6 +8,8 @@ function photoForm(config) {
         summary: null,
         image: null,
         imageUrl: null,
+        previewUrl: null,
+        isDragging: false,
         loading: false,
         error: '',
         success: '',
@@ -33,8 +35,33 @@ function photoForm(config) {
                 this.loading = false;
             }
         },
+        setFile(file) {
+            this.image = file;
+            if (this.previewUrl) {
+                URL.revokeObjectURL(this.previewUrl);
+                this.previewUrl = null;
+            }
+            if (file) {
+                this.previewUrl = URL.createObjectURL(file);
+            }
+        },
         onFile(event) {
-            this.image = event.target.files && event.target.files[0] ? event.target.files[0] : null;
+            const file = event.target.files && event.target.files[0] ? event.target.files[0] : null;
+            this.setFile(file);
+        },
+        onDrop(event) {
+            this.isDragging = false;
+            const file = event.dataTransfer?.files?.[0] || null;
+            if (file) {
+                this.setFile(file);
+            }
+        },
+        removeImage() {
+            this.setFile(null);
+            const input = document.getElementById('image');
+            if (input) {
+                input.value = '';
+            }
         },
         async submit() {
             this.loading = true;
