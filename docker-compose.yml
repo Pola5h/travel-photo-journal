@@ -1,10 +1,20 @@
+# ==============================================================================
+# Travel Photo Journal — Docker Compose Configuration
+# Purpose: Orchestrates the Laravel application and MySQL services.
+# Features: Decoupled development container with hot-reload volume mount and
+#           healthcheck-guarded database connection.
+# ==============================================================================
+
 services:
   app:
     build:
       context: .
-      dockerfile: docker/Dockerfile
+      dockerfile: Dockerfile
     ports:
-      - "8080:80"
+      - "8080:8000"
+    volumes:
+      - .:/app
+      - /app/vendor
     env_file:
       - .env
     environment:
