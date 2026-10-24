@@ -4,10 +4,12 @@ use App\Models\Photo;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 uses(RefreshDatabase::class);
 
+beforeEach(fn () => Http::fake());
 afterEach(fn () => cleanPhotoUploads());
 
 it('creates a photo with an uploaded image', function () {
