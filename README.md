@@ -3,7 +3,7 @@
 A small Laravel API + Blade UI where a registered user can upload travel photos, keep their
 location and description, and get an AI-generated summary for each photo.
 
-- **Live URL:** _not deployed yet — add the subdomain here after deployment_
+- **Live URL:** [https://test-journal.duckdns.org](https://test-journal.duckdns.org)
 - **Demo account:** set `DEMO_USER_EMAIL` / `DEMO_USER_PASSWORD` in `.env` and run
   `php artisan migrate --seed`. Locally the example values are `demo@example.com` / `password123`.
 - **Repository:** conventional commits, one commit per implementation step.
@@ -156,7 +156,7 @@ code returns 422 with `errors.otp`; a correct code returns the token.
   SHA-256 hash is stored. Tokens expire after 60 minutes, are deleted when reissued, are compared
   with `hash_equals`, and are single-use.
 - **AI summary is synchronous and fail-safe.** The summary must be present in the POST response,
-  so no queue or `defer()` is used. The OpenRouter call has a 10-second timeout; every failure is
+  so no queue or `defer()` is used. The OpenRouter call has a 30-second timeout; every failure is
   caught and the photo is still saved with `summary = null`. Only the error message is logged —
   never the description. Descriptions are truncated to 2000 characters before sending and stored
   summaries to 500. The system prompt tells the model to ignore instructions inside the text, and
@@ -216,6 +216,10 @@ docker compose exec app php artisan migrate --seed --force
 
 The app is then available at `http://localhost:8080`; MySQL is a separate `mysql` service with a
 persistent volume.
+
+The Docker setup is ultra-clean, minimalist, and self-contained:
+- **`Dockerfile`**: Official PHP 8.4 CLI Bookworm container with PDO MySQL, GD (JPEG/WebP), Zip, Composer, and runtime storage permission assurance.
+- **`docker-compose.yml`**: Orchestrates the Laravel application and MySQL 8.0 service with a built-in healthcheck (`mysqladmin ping`) to ensure zero race conditions before booting the web server.
 
 ## Running tests
 
