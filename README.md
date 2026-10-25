@@ -4,8 +4,7 @@ A small Laravel API + Blade UI where a registered user can upload travel photos,
 location and description, and get an AI-generated summary for each photo.
 
 - **Live URL:** [https://test-journal.duckdns.org](https://test-journal.duckdns.org)
-- **Demo account:** set `DEMO_USER_EMAIL` / `DEMO_USER_PASSWORD` in `.env` and run
-  `php artisan migrate --seed`. Locally the example values are `demo@example.com` / `password123`.
+- **Try it:** register with your own email on the live site, verify via the emailed link, then log in.
 - **Repository:** conventional commits, one commit per implementation step.
 
 ## Stack
@@ -62,7 +61,7 @@ cp .env.example .env
 php artisan key:generate
 php artisan jwt:secret
 
-# fill DB_* and (optionally) OPENROUTER_* / DEMO_USER_* in .env
+# fill DB_* and (optionally) OPENROUTER_* in .env
 
 php artisan migrate --seed
 php artisan serve
@@ -80,12 +79,11 @@ The `public/uploads/photos` directory must be writable by the web server. The in
 |---|---|
 | `APP_URL` | public URL, also used for image URLs and verification links |
 | `DB_*` | MySQL connection |
-| `JWT_SECRET`, `JWT_TTL` (minutes), `JWT_REFRESH_TTL` (minutes) | token signing and lifetimes |
-| `JWT_BLACKLIST_ENABLED`, `JWT_BLACKLIST_GRACE_PERIOD` | token invalidation on refresh/logout |
+| `JWT_SECRET`, `JWT_TTL` (minutes, default 15), `JWT_REFRESH_TTL` (minutes, default 20160 = 14 days) | token signing and lifetimes |
+| `JWT_BLACKLIST_ENABLED` (true), `JWT_BLACKLIST_GRACE_PERIOD` (seconds, default 30) | token invalidation on refresh/logout |
 | `MAIL_*` | verification mail (log locally, Brevo/SMTP in production) |
 | `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` | AI summary provider and model |
 | `UPLOAD_MAX_KB` | image size limit (default 5120) |
-| `DEMO_USER_EMAIL`, `DEMO_USER_PASSWORD` | optional demo account seeded by `DemoUserSeeder` |
 
 ## API
 
