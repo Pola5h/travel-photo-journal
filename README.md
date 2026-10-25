@@ -236,9 +236,8 @@ and fake uploads; no external service is called.
 ## With more time
 
 - Queue or `defer()` the AI summary with a `summary_status` column and polling/streaming in the UI.
-- Separate refresh tokens in an httpOnly cookie, rotate on use, and revoke a family on reuse.
-- 2FA recovery codes and a "trust this device" option.
-- Image resizing/thumbnails, EXIF stripping, and S3/Cloudinary storage.
-- Redis-backed rate limiting and shared cache for the token blacklist.
-- CI pipeline with Pint, static analysis, and the Pest suite on every push.
+- Database-backed `token_version` in user claims for instant, cache-flush-resilient session invalidation.
+- 2FA recovery backup codes and a "trust this device" option.
+- Image resizing/thumbnails, EXIF metadata stripping, and S3/Cloudinary storage.
+- CI pipeline with Pint code style, PHPStan static analysis, and the Pest test suite on every push.
 - Better pagination UX and optimistic UI for deletes.
